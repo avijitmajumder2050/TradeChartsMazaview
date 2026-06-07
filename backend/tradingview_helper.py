@@ -254,50 +254,82 @@ def fetch_all_live_data_bulk():
     
     return _live_data_cache
 
+
+
 def get_stock_list():
+    logger.info("Fetching stock list...")
+
     df_map = get_df_map()
 
-    if df_map.empty:
+    if df_map is None or df_map.empty:
+        logger.warning("df_map is empty or None")
         return []
 
     df = df_map.copy()
+
+    # -------------------------------
+    # STEP 1: Column diagnostics
+    # -------------------------------
+    logger.info(f"Raw columns from df_map: {df.columns.tolist()}")
+
+    # normalize columns
     df.columns = df.columns.str.strip()
 
-    # -------------------------------
-    # STEP 1: Cleanup
-    # -------------------------------
-    df = df.dropna(subset=["Stock Name", "Instrument ID"])
+    logger.info(f"Cleaned columns: {df.columns.tolist()}")
 
     # -------------------------------
-    # STEP 2: Use RS Rating directly from CSV
+    # STEP 2: Validation
     # -------------------------------
-    df["rs_rating"] = pd.to_numeric(df["RS Rating"], errors="coerce").fillna(0)
+    required_cols = ["Stock Name", "Instrument ID"]
+    missing_required = [c for c in required_cols if c not in df.columns]
 
-    # optional safety clamp (0–100)
+    if missing_required:
+        logger.error(f"Missing required columns: {missing_required}")
+        return []
+
+    df = df.dropna(subset=required_cols)
+
+    # -------------------------------
+    # STEP 3: RS Rating handling
+    # -------------------------------
+    if "RS Rating" not in df.columns:
+        logger.error(f"'RS Rating' column NOT found. Available columns: {df.columns.tolist()}")
+        df["rs_rating"] = 0
+    else:
+        logger.info("RS Rating column found. Processing values...")
+        df["rs_rating"] = pd.to_numeric(df["RS Rating"], errors="coerce").fillna(0)
+
     df["rs_rating"] = df["rs_rating"].clip(0, 100)
 
+    logger.info(f"RS Rating stats -> min: {df['rs_rating'].min()}, max: {df['rs_rating'].max()}")
+
     # -------------------------------
-    # STEP 3: Sort by RS (100 → 0)
+    # STEP 4: Sorting
     # -------------------------------
     df = df.sort_values(by="rs_rating", ascending=False)
 
+    logger.info("Sorting completed by RS Rating")
+
+    # -------------------------------
+    # STEP 5: Build response
+    # -------------------------------
     stocks = []
+
     for _, row in df.iterrows():
         try:
             stocks.append({
                 "stock_name": str(row["Stock Name"]),
                 "instrument_id": int(row["Instrument ID"]),
-                "market_cap": float(row["Market Cap"]) if "Market Cap" in row and pd.notna(row["Market Cap"]) else 0.0,
+                "market_cap": float(row["Market Cap"]) if "Market Cap" in df.columns and pd.notna(row.get("Market Cap")) else 0.0,
                 "setup_case": str(row.get("Setup_Case", "Unknown")),
-
-                # ⭐ direct from CSV
                 "rs_rating": round(float(row["rs_rating"]), 2)
             })
         except Exception as e:
-            logger.warning(f"Skipping row: {e}")
+            logger.exception(f"Error processing row: {row.to_dict()}")
+
+    logger.info(f"Final stock count: {len(stocks)}")
 
     return stocks
-
 def get_ema_cache():
     """
     Compute EMA cross for all instruments and return dict:
