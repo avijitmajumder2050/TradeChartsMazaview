@@ -281,7 +281,9 @@ def get_ema_cache():
         try:
             instrument_id = int(row["Instrument ID"])
             stock_name = str(row["Stock Name"])   # ✅ ADD THIS
-            df = load_stock_data(instrument_id)
+            raw = load_stock_data(instrument_id)
+            df = pd.DataFrame(raw) if raw is not None else None
+           
             
 
             if df is None or len(df) < 60:
