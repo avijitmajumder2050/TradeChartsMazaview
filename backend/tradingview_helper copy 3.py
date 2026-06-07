@@ -444,10 +444,10 @@ def get_ec2_public_ip(tag_name="FlaskTradingApp", region_name="ap-south-1"):
         logger.error(f"❌ Error fetching EC2 public IP: {e}")
         return None
 
-
+from ta.trend import EMAIndicator
 
 def compute_ema_cross(df):
-    if df is None or len(df) < 3:
+    if df is None or len(df) < 60:
         return False
 
     df = df.copy()
@@ -460,50 +460,15 @@ def compute_ema_cross(df):
     latest = df.iloc[-1]
     prev = df.iloc[-2]
 
+    cross_ema10 = prev["close"] <= prev["ema10"] and latest["close"] > latest["ema10"]
+    cross_ema20 = prev["close"] <= prev["ema20"] and latest["close"] > latest["ema20"]
+
+    cond_price_cross = cross_ema10 or cross_ema20
+    cond_alignment = latest["ema10"] > latest["ema20"] > latest["ema50"]
     cond_volume = latest["volume"] > 70000
+    result = cond_price_cross and cond_alignment and cond_volume
 
-    cond_low_open_buffer = latest["low"] > latest["open"] * 0.96
-
-    cond_uptrend = df["ema20"].iloc[-1] > df["ema50"].iloc[-1]
-
-    cond_ema10_up = (
-        latest["close"] > df["ema10"].iloc[-1] * 1.01 and
-        prev["close"] <= df["ema10"].iloc[-2] * 1.01
-    )
-
-    cond_ema10_down = (
-        latest["close"] > df["ema10"].iloc[-1] * 0.99 and
-        prev["close"] <= df["ema10"].iloc[-2] * 0.99
-    )
-
-    cond_ema20_up = (
-        latest["close"] > df["ema20"].iloc[-1] * 1.01 and
-        prev["close"] <= df["ema20"].iloc[-2] * 1.01
-    )
-
-    cond_ema20_down = (
-        latest["close"] > df["ema20"].iloc[-1] * 0.99 and
-        prev["close"] <= df["ema20"].iloc[-2] * 0.99
-    )
-
-    cond_low_below_ema = (
-        (
-            latest["low"] <= df["ema10"].iloc[-1] and
-            latest["close"] >= df["ema10"].iloc[-1] * 0.995
-        )
-        or
-        (
-            latest["low"] <= df["ema20"].iloc[-1] and
-            latest["close"] >= df["ema20"].iloc[-1] * 0.995
-        )
-    )
-
-    return bool(
-        cond_low_open_buffer and
-        cond_uptrend and
-        cond_low_below_ema and
-        cond_volume
-    )
+    return bool(result)
 
 # Initialize on import
 logger.info("TradingView helper initialized")

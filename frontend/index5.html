@@ -230,7 +230,7 @@ const EMA_COLORS = { 10:"#2962ff", 20:"#ff6d00", 50:"#aa00ff", 200:"#e91e63" };
 let allStocks      = [];   // full list from /api/tradingview/stocks
 let filteredStocks = [];   // after search / filters
 let page           = 1;
-let pageSize       = 100;
+let pageSize       = 50;
 let currentView    = "card";
 let chartHeightPx  = 440;
 let chartInstances = {};   // instrument_id → LightweightCharts instance
@@ -239,6 +239,8 @@ let favorites      = JSON.parse(localStorage.getItem("tv_favs") || "{}");
 let setupChoices   = null;
 let sortKey        = null;
 let sortDir        = "asc";
+let emaCache = {};
+let emaCacheLoaded = false;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // UTILITIES
@@ -334,7 +336,7 @@ async function boot() {
     $("layoutSel").value = savedCols;
     setLayout(savedCols, false);
 
-    await preloadEMAFlags();
+    
 filterStocks();
   } catch (e) {
     $("cardGrid").innerHTML = `<div style="padding:40px;text-align:center;color:var(--error)"><i class="fas fa-exclamation-triangle"></i> Failed to load stocks — ${e.message}</div>`;
@@ -345,25 +347,41 @@ filterStocks();
 // FILTER + RANK
 // ══════════════════════════════════════════════════════════════════════════════
 function filterStocks() {
-  const q        = ($("searchInput").value || "").toLowerCase().trim();
-  const emaOn    = $("emaFilter").checked;
-  const selSetups= setupChoices ? setupChoices.getValue(true).filter(Boolean) : [];
+  const q = ($("searchInput").value || "").toLowerCase().trim();
+  const emaOn = $("emaFilter").checked;
+  const selSetups = setupChoices ? setupChoices.getValue(true).filter(Boolean) : [];
 
-  filteredStocks = allStocks.filter(s => {
-    const mSearch = !q ||
-      s.stock_name.toLowerCase().includes(q) ||
-      (s.setup_case || "").toLowerCase().includes(q) ||
-      String(s.instrument_id).includes(q);
-    const mSetup = !selSetups.length || selSetups.includes(s.setup_case);
-    const mEma   = !emaOn || !!(tableData[s.instrument_id]?.ema_cross);
-    return mSearch && mSetup && mEma;
-  });
+  const applyFilter = () => {
+    filteredStocks = allStocks.filter(s => {
+      const mSearch = !q ||
+        s.stock_name.toLowerCase().includes(q) ||
+        (s.setup_case || "").toLowerCase().includes(q) ||
+        String(s.instrument_id).includes(q);
 
-  page = 1;
-  $("countBadge").textContent = `${filteredStocks.length} stock${filteredStocks.length !== 1 ? "s" : ""}`;
-  render();
+      const mSetup = !selSetups.length || selSetups.includes(s.setup_case);
+
+      const mEma =
+        !emaOn ||
+        emaCache[s.instrument_id] === true;
+
+      return mSearch && mSetup && mEma;
+    });
+
+    page = 1;
+    $("countBadge").textContent =
+      `${filteredStocks.length} stock${filteredStocks.length !== 1 ? "s" : ""}`;
+
+    render();
+  };
+
+  // 🔥 lazy load EMA cache only when needed
+  if (emaOn && !emaCacheLoaded) {
+    $("countBadge").textContent = "Loading EMA filter...";
+    loadEmaCacheIfNeeded().then(applyFilter);
+  } else {
+    applyFilter();
+  }
 }
-
 // ══════════════════════════════════════════════════════════════════════════════
 // LAYOUT / VIEW CONTROLS
 // ══════════════════════════════════════════════════════════════════════════════
@@ -792,7 +810,20 @@ function detectEmaCross(data) {
     );
 }
 
+async function loadEmaCacheIfNeeded() {
+  if (emaCacheLoaded) return emaCache;
 
+  try {
+    const d = await apiFetch("/api/tradingview/ema-cache");
+    emaCache = d.data || d || {};
+    emaCacheLoaded = true;
+    return emaCache;
+  } catch (e) {
+    console.error("EMA cache load failed", e);
+    emaCache = {};
+    return emaCache;
+  }
+}
 async function preloadEMAFlags() {
 
     const promises = allStocks.map(async stock => {
