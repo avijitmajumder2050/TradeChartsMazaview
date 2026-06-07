@@ -280,12 +280,17 @@ def get_ema_cache():
     for _, row in df_map.iterrows():
         try:
             instrument_id = int(row["Instrument ID"])
+            stock_name = str(row["Stock Name"])   # ✅ ADD THIS
             df = load_csv_from_s3(instrument_id)
+            
 
             if df is None or len(df) < 60:
                 continue
 
-            result[instrument_id] = compute_ema_cross(df.tail(120))
+            result[instrument_id] = compute_ema_cross(
+                df.tail(120),
+                stock_name=stock_name   # ✅ PASS IT
+            )
 
         except Exception as e:
             logger.error(f"EMA cache error {instrument_id}: {e}")
