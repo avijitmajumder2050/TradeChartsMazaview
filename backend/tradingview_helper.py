@@ -142,7 +142,7 @@ def load_mapping_from_s3():
         _df_map = pd.read_csv(StringIO(csv_content))
         
         # Validate required columns
-        required_columns = ["Stock Name", "Instrument ID", "Market Cap", "RS Rating"]
+        required_columns = ["Stock Name", "Instrument ID", "Market Cap", "Setup_Case", "RS Rating"]
         missing_columns = [col for col in required_columns if col not in _df_map.columns]
         
         if missing_columns:
