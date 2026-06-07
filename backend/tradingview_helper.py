@@ -447,12 +447,13 @@ def get_ec2_public_ip(tag_name="FlaskTradingApp", region_name="ap-south-1"):
 
 
 def compute_ema_cross(df):
-    if df is None or len(df) < 3:
+    if df is None or len(df) < 60:
         return False
 
     df = df.copy()
     df.columns = [c.lower() for c in df.columns]
 
+    # ---------- EMA ----------
     df["ema10"] = EMAIndicator(df["close"], 10).ema_indicator()
     df["ema20"] = EMAIndicator(df["close"], 20).ema_indicator()
     df["ema50"] = EMAIndicator(df["close"], 50).ema_indicator()
@@ -460,32 +461,33 @@ def compute_ema_cross(df):
     latest = df.iloc[-1]
     prev = df.iloc[-2]
 
+    # ---------- Volume ----------
     cond_volume = latest["volume"] > 70000
 
+    # ---------- Price structure ----------
     cond_low_open_buffer = latest["low"] > latest["open"] * 0.96
 
-    cond_uptrend = df["ema20"].iloc[-1] > df["ema50"].iloc[-1]
-
-    cond_ema10_up = (
-        latest["close"] > df["ema10"].iloc[-1] * 1.01 and
-        prev["close"] <= df["ema10"].iloc[-2] * 1.01
+    # ---------- Trend (STRICT ALIGNMENT) ----------
+    cond_uptrend = (
+        df["ema10"].iloc[-1] >
+        df["ema20"].iloc[-1] >
+        df["ema50"].iloc[-1]
     )
 
-    cond_ema10_down = (
-        latest["close"] > df["ema10"].iloc[-1] * 0.99 and
-        prev["close"] <= df["ema10"].iloc[-2] * 0.99
+    # ---------- EMA cross logic (CLEAN TRUE CROSS ONLY) ----------
+    cond_ema10_cross = (
+        latest["close"] > df["ema10"].iloc[-1] and
+        prev["close"] <= df["ema10"].iloc[-2]
     )
 
-    cond_ema20_up = (
-        latest["close"] > df["ema20"].iloc[-1] * 1.01 and
-        prev["close"] <= df["ema20"].iloc[-2] * 1.01
+    cond_ema20_cross = (
+        latest["close"] > df["ema20"].iloc[-1] and
+        prev["close"] <= df["ema20"].iloc[-2]
     )
 
-    cond_ema20_down = (
-        latest["close"] > df["ema20"].iloc[-1] * 0.99 and
-        prev["close"] <= df["ema20"].iloc[-2] * 0.99
-    )
+    cond_ema_combined = cond_ema10_cross or cond_ema20_cross
 
+    # ---------- Pullback / bounce ----------
     cond_low_below_ema = (
         (
             latest["low"] <= df["ema10"].iloc[-1] and
@@ -498,12 +500,26 @@ def compute_ema_cross(df):
         )
     )
 
-    return bool(
+    # ---------- FINAL RESULT ----------
+    result = (
+        cond_volume and
         cond_low_open_buffer and
         cond_uptrend and
-        cond_low_below_ema and
-        cond_volume
+        cond_low_below_ema
+        # cond_ema_combined  # enable if you want strict cross filter
     )
+
+    # ---------- LOGGING ----------
+    logger.info(
+        f"EMA DEBUG | vol={cond_volume} | "
+        f"trend={cond_uptrend} | "
+        f"buffer={cond_low_open_buffer} | "
+        f"cross10={cond_ema10_cross} | "
+        f"cross20={cond_ema20_cross} | "
+        f"result={result}"
+    )
+
+    return bool(result)
 
 # Initialize on import
 logger.info("TradingView helper initialized")
