@@ -446,8 +446,9 @@ def get_ec2_public_ip(tag_name="FlaskTradingApp", region_name="ap-south-1"):
 
 
 
-def compute_ema_cross(df):
+def compute_ema_cross(df, stock_name=None):
     if df is None or len(df) < 60:
+        logger.info(f"EMA DEBUG [{stock_name}] ❌ Not enough data")
         return False
 
     df = df.copy()
@@ -461,62 +462,70 @@ def compute_ema_cross(df):
     latest = df.iloc[-1]
     prev = df.iloc[-2]
 
+    ema10_l = df["ema10"].iloc[-1]
+    ema10_p = df["ema10"].iloc[-2]
+
+    ema20_l = df["ema20"].iloc[-1]
+    ema20_p = df["ema20"].iloc[-2]
+
+    ema50_l = df["ema50"].iloc[-1]
+
     # ---------- Volume ----------
     cond_volume = latest["volume"] > 70000
 
     # ---------- Price structure ----------
     cond_low_open_buffer = latest["low"] > latest["open"] * 0.96
 
-    # ---------- Trend (STRICT ALIGNMENT) ----------
-    cond_uptrend = (
-        df["ema10"].iloc[-1] >
-        df["ema20"].iloc[-1] >
-        df["ema50"].iloc[-1]
-    )
+    # ---------- Trend ----------
+    cond_uptrend = ema10_l > ema20_l > ema50_l
 
-    # ---------- EMA cross logic (CLEAN TRUE CROSS ONLY) ----------
+    # ---------- CROSS LOGIC (WITH FULL TRACE) ----------
     cond_ema10_cross = (
-        latest["close"] > df["ema10"].iloc[-1] and
-        prev["close"] <= df["ema10"].iloc[-2]
+        latest["close"] > ema10_l and
+        prev["close"] <= ema10_p
     )
 
     cond_ema20_cross = (
-        latest["close"] > df["ema20"].iloc[-1] and
-        prev["close"] <= df["ema20"].iloc[-2]
+        latest["close"] > ema20_l and
+        prev["close"] <= ema20_p
     )
 
-    cond_ema_combined = cond_ema10_cross or cond_ema20_cross
-
-    # ---------- Pullback / bounce ----------
+    # ---------- Pullback ----------
     cond_low_below_ema = (
-        (
-            latest["low"] <= df["ema10"].iloc[-1] and
-            latest["close"] >= df["ema10"].iloc[-1] * 0.995
-        )
-        or
-        (
-            latest["low"] <= df["ema20"].iloc[-1] and
-            latest["close"] >= df["ema20"].iloc[-1] * 0.995
-        )
+        (latest["low"] <= ema10_l and latest["close"] >= ema10_l * 0.995) or
+        (latest["low"] <= ema20_l and latest["close"] >= ema20_l * 0.995)
     )
 
-    # ---------- FINAL RESULT ----------
     result = (
         cond_volume and
         cond_low_open_buffer and
         cond_uptrend and
         cond_low_below_ema
-        # cond_ema_combined  # enable if you want strict cross filter
     )
 
-    # ---------- LOGGING ----------
+    # ---------- DETAILED CROSS LOG ----------
     logger.info(
-        f"EMA DEBUG | vol={cond_volume} | "
-        f"trend={cond_uptrend} | "
-        f"buffer={cond_low_open_buffer} | "
-        f"cross10={cond_ema10_cross} | "
-        f"cross20={cond_ema20_cross} | "
-        f"result={result}"
+        f"\nEMA CROSS DEBUG [{stock_name}]\n"
+        f"------------------------------------\n"
+        f"EMA10 prev={ema10_p:.2f} last={ema10_l:.2f}\n"
+        f"EMA20 prev={ema20_p:.2f} last={ema20_l:.2f}\n"
+        f"------------------------------------\n"
+        f"PRICE prev_close={prev['close']} | latest_close={latest['close']}\n"
+        f"------------------------------------\n"
+        f"CROSS EMA10 -> "
+        f"prev_close<=EMA10(prev)? {prev['close'] <= ema10_p} | "
+        f"latest_close>EMA10(last)? {latest['close'] > ema10_l} | "
+        f"RESULT={cond_ema10_cross}\n"
+        f"CROSS EMA20 -> "
+        f"prev_close<=EMA20(prev)? {prev['close'] <= ema20_p} | "
+        f"latest_close>EMA20(last)? {latest['close'] > ema20_l} | "
+        f"RESULT={cond_ema20_cross}\n"
+        f"------------------------------------\n"
+        f"VOL={latest['volume']} ({cond_volume}) | "
+        f"UPTREND={cond_uptrend} | "
+        f"BUFFER={cond_low_open_buffer} | "
+        f"TOUCH={cond_low_below_ema} | "
+        f"FINAL={result}\n"
     )
 
     return bool(result)
