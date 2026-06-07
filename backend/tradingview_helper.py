@@ -45,7 +45,7 @@ logger.info(f"🔑 DHAN_CLIENT_ID: {DHAN_CLIENT_ID}, DHAN_ACCESS_TOKEN: {'*'*8 i
 
 # S3 Configuration - CORRECTED BUCKET NAME
 #S3_BUCKET = os.getenv("S3_BUCKET", "mytradeapp-csv-bucket")  # Changed to your actual bucket name
-S3_BUCKET = "mytradeapp-csv-bucket"  # Hard-coded or configured via IAM role only
+S3_BUCKET = "dhan-trading-data"  # Hard-coded or configured via IAM role only
 S3_MAPPING_KEY = "uploads/mapping.csv"
 S3_EOD_DIR = "eod_data"
 S3_DROP_DIR = "stock_dump_eod"
