@@ -257,16 +257,24 @@ def fetch_all_live_data_bulk():
 def get_stock_list():
     df_map = get_df_map()
     stocks = []
+
     for _, row in df_map.iterrows():
-        try:
-            stocks.append({
-                "stock_name": str(row["Stock Name"]),
-                "instrument_id": int(row["Instrument ID"]),
-                "market_cap": float(row["Market Cap"]) if pd.notna(row["Market Cap"]) else 0.0,
-                "setup_case": str(row["Setup_Case"]) if pd.notna(row["Setup_Case"]) else "Unknown"
-            })
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Skipping invalid row in mapping: {e}")
+        instrument_id = int(row["Instrument ID"])
+
+        df = load_csv_from_s3(instrument_id)
+
+        ema_cross = False
+        if df is not None and len(df) > 60:
+            ema_cross = bool(compute_ema_cross(df.tail(120)))
+
+        stocks.append({
+            "stock_name": str(row["Stock Name"]),
+            "instrument_id": int(instrument_id),
+            "market_cap": float(row["Market Cap"]) if pd.notna(row["Market Cap"]) else 0.0,
+            "setup_case": str(row["Setup_Case"]) if pd.notna(row["Setup_Case"]) else "Unknown",
+            "ema_cross": bool(ema_cross)
+        })
+
     return stocks
 
 def get_ema_cache():

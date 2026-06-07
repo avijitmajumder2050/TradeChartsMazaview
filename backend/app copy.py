@@ -19,7 +19,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from functools import wraps
 
-from tradingview_helper import get_stock_list, load_stock_data, refresh_live_data, get_ema_cache
+from tradingview_helper import get_stock_list, load_stock_data, refresh_live_data
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -73,20 +73,6 @@ def api_stock_data():
 def api_refresh():
     result = refresh_live_data()
     return jsonify({"success": True, "instruments_updated": len(result)})
-
-from flask import jsonify
-from tradingview_helper import get_ema_cache
-
-
-@app.get("/api/tradingview/ema-cache")
-@api_guard
-def ema_cache():
-    data = get_ema_cache()
-
-    return jsonify({
-        "success": True,
-        "data": data
-    })
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
