@@ -218,8 +218,8 @@ body{ background:var(--light-bg); color:var(--text-primary); font-family:Arial,s
 // ══════════════════════════════════════════════════════════════════════════════
 // CONFIG — update with your EC2 IP / domain
 // ══════════════════════════════════════════════════════════════════════════════
-const API_BASE = "http://15.207.151.67:5000";   // ← your EC2 backend URL
-//const API_BASE = ""; 
+//const API_BASE = "http://15.207.151.67:5000";   // ← your EC2 backend URL
+const API_BASE = ""; 
 
 // ── EMA line colours ──
 const EMA_COLORS = { 10:"#2962ff", 20:"#ff6d00", 50:"#aa00ff", 200:"#e91e63" };
@@ -935,15 +935,33 @@ function expandCard(id, btn) {
 
 async function downloadChart(id) {
   const inst = chartInstances[id];
-  if (!inst) { toast("Chart not ready", false); return; }
+  if (!inst) {
+    toast("Chart not ready", false);
+    return;
+  }
+
   try {
-    const img = await inst.chart.takeScreenshot();
+    const canvas = await inst.chart.takeScreenshot();
+    const ctx = canvas.getContext("2d");
+
+    const stockName = allStocks.find(s => s.instrument_id === id)?.stock_name || "UNKNOWN";
+
+    // 👇 FORCE DRAW TEXT INTO IMAGE
+    ctx.font = "bold 28px Arial";
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillText(stockName, 20, 40);
+
     const a = document.createElement("a");
-    a.href = img.toDataURL("image/png");
-    a.download = `chart_${id}.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.download = `chart_${stockName}_${id}.png`;
     a.click();
+
     toast("Chart downloaded ✓");
-  } catch { toast("Download failed", false); }
+
+  } catch (e) {
+    console.error(e);
+    toast("Download failed", false);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

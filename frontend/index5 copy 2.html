@@ -218,8 +218,8 @@ body{ background:var(--light-bg); color:var(--text-primary); font-family:Arial,s
 // ══════════════════════════════════════════════════════════════════════════════
 // CONFIG — update with your EC2 IP / domain
 // ══════════════════════════════════════════════════════════════════════════════
-const API_BASE = "http://15.207.151.67:5000";   // ← your EC2 backend URL
-//const API_BASE = ""; 
+//const API_BASE = "http://15.207.151.67:5000";   // ← your EC2 backend URL
+const API_BASE = ""; 
 
 // ── EMA line colours ──
 const EMA_COLORS = { 10:"#2962ff", 20:"#ff6d00", 50:"#aa00ff", 200:"#e91e63" };
@@ -981,7 +981,7 @@ function renderTable() {
         ${td_.chg_pct != null ? ((td_.chg_pct >= 0 ? "▲" : "▼") + Math.abs(td_.chg_pct).toFixed(2) + "%") : "—"}
       </td>
       <td class="tbl-vol-${id}">${td_.volume != null ? Number(td_.volume).toLocaleString() : "—"}</td>
-      <td>${s.market_cap ? Number(s.market_cap).toFixed(0) + " Cr" : "—"}</td>`;
+      <td>${s.market_cap ? Number(s.market_cap / 1e7).toFixed(0) + " Cr" : "—"}</td>`;
     tb.appendChild(row);
 
     // Fetch data if not cached

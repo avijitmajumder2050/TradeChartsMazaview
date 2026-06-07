@@ -478,7 +478,7 @@ def compute_ema_cross(df, stock_name=None):
     ema50_l = df["ema50"].iloc[-1]
 
     # ---------- Volume ----------
-    cond_volume = latest["volume"] > 70000
+    cond_volume = latest["volume"] > 50000
 
     # ---------- Price structure ----------
     cond_low_open_buffer = latest["low"] > latest["open"] * 0.96
