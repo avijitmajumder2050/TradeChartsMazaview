@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock Charts</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet">
+<style>
+/* ── Theme ── */
+:root {
+  --primary:#2962ff; --success:#2e7d32; --warning:#f9a825;
+  --error:#c62828;   --light-bg:#f5f7fa; --card-bg:#ffffff;
+  --text-primary:#212121; --text-secondary:#757575; --border:#e0e0e0;
+}
+.dark-mode {
+  --light-bg:#121212; --card-bg:#1e1e1e;
+  --text-primary:#f0f0f0; --text-secondary:#aaa; --border:#333;
+}
+*{ box-sizing:border-box; margin:0; padding:0 }
+body{ background:var(--light-bg); color:var(--text-primary); font-family:Arial,sans-serif; transition:background .25s,color .25s }
+
+/* ── Navbar ── */
+.navbar{ background:#0d1b2a; padding:0 20px; height:52px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:200; box-shadow:0 2px 8px rgba(0,0,0,.4) }
+.brand{ font-weight:700; font-size:16px; color:#fff; text-decoration:none; display:flex; align-items:center; gap:8px }
+.nav-right{ display:flex; align-items:center; gap:10px }
+.api-dot{ font-size:12px; color:#aaa }
+.theme-btn{ background:none; border:1px solid rgba(255,255,255,.2); color:#ccc; border-radius:6px; padding:4px 9px; cursor:pointer; font-size:14px }
+.theme-btn:hover{ background:rgba(255,255,255,.1) }
+
+/* ── Controls ── */
+.controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:14px 20px; background:var(--card-bg); border-bottom:1px solid var(--border); position:sticky; top:52px; z-index:100 }
+.search-wrap{ position:relative; flex:1; min-width:200px }
+.search-wrap i{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-secondary); font-size:13px }
+.search-input{ width:100%; padding:8px 12px 8px 34px; border:1px solid var(--border); border-radius:6px; background:var(--light-bg); color:var(--text-primary); font-size:13px }
+.search-input:focus{ outline:none; border-color:var(--primary); box-shadow:0 0 0 2px rgba(41,98,255,.15) }
+.ctrl-select{ padding:8px 11px; border:1px solid var(--border); border-radius:6px; background:var(--light-bg); color:var(--text-primary); font-size:13px; height:36px }
+.layout-select{ padding:8px 11px; border:1px solid var(--border); border-radius:6px; background:var(--light-bg); color:var(--text-primary); font-size:13px; height:36px; cursor:pointer }
+.view-toggle{ display:flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; height:36px }
+.view-btn{ padding:0 13px; background:var(--light-bg); border:none; cursor:pointer; color:var(--text-secondary); display:flex; align-items:center; transition:all .15s; font-size:14px }
+.view-btn:hover{ background:rgba(41,98,255,.1) }
+.view-btn.active{ background:var(--primary); color:#fff }
+.ctrl-btn{ padding:0 13px; height:36px; border:1px solid var(--border); border-radius:6px; background:var(--light-bg); color:var(--text-primary); cursor:pointer; font-size:13px; display:flex; align-items:center; gap:6px; transition:all .15s }
+.ctrl-btn:hover{ border-color:var(--primary); color:var(--primary) }
+.ema-label{ font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap }
+.ema-label input{ cursor:pointer; width:14px; height:14px }
+
+/* ── Stock count badge ── */
+.count-badge{ font-size:12px; background:rgba(41,98,255,.12); color:var(--primary); padding:3px 9px; border-radius:99px; white-space:nowrap }
+
+/* ── Card grid ── */
+.card-grid{ display:grid; gap:16px; padding:16px 20px }
+
+/* ── Stock card ── */
+.stock-card{ background:var(--card-bg); border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.07); overflow:hidden; transition:transform .18s,box-shadow .18s }
+.stock-card:hover{ transform:translateY(-3px); box-shadow:0 6px 20px rgba(0,0,0,.13) }
+.card-header{ display:flex; justify-content:space-between; align-items:center; padding:11px 14px; border-bottom:1px solid var(--border) }
+.stock-meta{ display:flex; align-items:center; gap:10px }
+.stock-name{ font-weight:600; font-size:15px }
+.setup-badge{ font-size:10px; font-weight:600; padding:2px 7px; border-radius:99px; background:rgba(41,98,255,.1); color:var(--primary) }
+.price-wrap{ text-align:right; font-size:12px }
+.price-ltp{ font-size:15px; font-weight:600 }
+.price-chg{ font-size:11px }
+.chg-pos{ color:var(--success) }
+.chg-neg{ color:var(--error) }
+.card-actions{ display:flex; gap:4px; align-items:center }
+.action-btn{ background:none; border:none; cursor:pointer; color:var(--text-secondary); font-size:14px; padding:4px 6px; border-radius:5px; transition:all .15s }
+.action-btn:hover{ color:var(--primary); background:rgba(41,98,255,.1) }
+.action-btn.fav-on{ color:var(--warning) }
+.card-body-wrap{ padding:12px; position:relative }
+.chart-container{ width:100%; position:relative }
+.ohlc-bar{ position:absolute; top:8px; left:50%; transform:translateX(-50%); background:rgba(255,255,255,.93); color:#333; padding:4px 10px; border-radius:6px; font-size:11px; z-index:20; pointer-events:none; white-space:nowrap; box-shadow:0 1px 4px rgba(0,0,0,.15) }
+.dark-mode .ohlc-bar{ background:rgba(30,30,30,.93); color:#ddd }
+
+/* ── Loading / Error ── */
+.loading-box{ display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:8px; color:var(--text-secondary) }
+.spinner{ width:26px; height:26px; border:2.5px solid rgba(41,98,255,.25); border-top-color:var(--primary); border-radius:50%; animation:spin .7s linear infinite }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+.error-box{ display:flex; align-items:center; justify-content:center; height:100%; gap:6px; color:var(--error); font-size:13px }
+
+/* ── Table view ── */
+.tbl-wrap{ padding:0 20px 20px; overflow-x:auto }
+.stock-table{ width:100%; border-collapse:collapse; background:var(--card-bg); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.07) }
+.stock-table th{ background:var(--primary); color:#fff; padding:11px 14px; text-align:left; font-size:12px; letter-spacing:.04em; text-transform:uppercase; white-space:nowrap }
+.stock-table th.sortable{ cursor:pointer; user-select:none }
+.stock-table th.sortable:hover{ background:rgba(41,98,255,.8) }
+.stock-table td{ padding:10px 14px; border-bottom:1px solid var(--border); font-size:13px }
+.stock-table tr:hover{ background:rgba(41,98,255,.03) }
+.tbl-setup{ font-size:11px; padding:2px 7px; border-radius:99px; background:rgba(41,98,255,.1); color:var(--primary) }
+
+/* ── Pagination ── */
+.pg-wrap{ display:flex; justify-content:center; align-items:center; gap:6px; padding:16px 20px; flex-wrap:wrap }
+.pg-btn{ padding:7px 12px; background:var(--card-bg); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); cursor:pointer; font-size:13px; transition:all .15s; min-width:38px; text-align:center }
+.pg-btn:hover:not(:disabled){ background:var(--primary); color:#fff; border-color:var(--primary) }
+.pg-btn.active{ background:var(--primary); color:#fff; border-color:var(--primary) }
+.pg-btn:disabled{ opacity:.4; cursor:not-allowed }
+.pg-info{ font-size:12px; color:var(--text-secondary); margin:0 4px }
+
+/* ── Legend strip ── */
+.legend{ display:flex; gap:14px; padding:6px 14px; flex-wrap:wrap; align-items:center }
+.leg-item{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-secondary) }
+.leg-dot{ width:18px; height:2.5px; border-radius:2px }
+
+/* ── Expanded overlay ── */
+.stock-card.expanded{
+  position:fixed; top:52px; left:0; right:0; bottom:0; z-index:500;
+  border-radius:0; margin:0; transform:none!important;
+  box-shadow:none!important;
+}
+
+/* ── Toast ── */
+#toast{ position:fixed; bottom:22px; right:22px; background:#323232; color:#fff; padding:11px 18px; border-radius:8px; font-size:13px; z-index:9999; display:none; box-shadow:0 4px 14px rgba(0,0,0,.35) }
+#toast.show{ display:block; animation:fadeUp .25s ease }
+@keyframes fadeUp{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
+
+/* ── Choices dark patch ── */
+.dark-mode .choices__inner{ background:var(--light-bg)!important; border-color:var(--border)!important; color:var(--text-primary)!important }
+.dark-mode .choices__list--dropdown{ background:var(--card-bg)!important; border-color:var(--border)!important }
+.dark-mode .choices__item{ color:var(--text-primary)!important }
+
+/* ── Responsive ── */
+@media(max-width:640px){
+  .controls{ flex-direction:column; align-items:stretch }
+  .search-wrap{ min-width:auto }
+  .card-grid{ padding:10px }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Navbar ── -->
+<nav class="navbar">
+  <a class="brand" href="#">📊 TradeCharts</a>
+  <div class="nav-right">
+    <span class="api-dot" id="apiDot">⚪ Connecting…</span>
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+  </div>
+</nav>
+
+<!-- ── Controls ── -->
+<div class="controls" id="controlsBar">
+  <div class="search-wrap">
+    <i class="fas fa-search"></i>
+    <input class="search-input" id="searchInput" placeholder="Search symbol or setup…" oninput="onSearch()">
+  </div>
+
+  <select id="setupFilter" multiple placeholder="All Setups"></select>
+
+  <select class="layout-select" id="layoutSel" onchange="setLayout(this.value)">
+    <option value="1">1 column</option>
+    <option value="2" selected>2 columns</option>
+    <option value="3">3 columns</option>
+    <option value="4">4 columns</option>
+  </select>
+
+  <select class="ctrl-select" id="chartHeight" onchange="setChartHeight(this.value)">
+    <option value="340">Short (340px)</option>
+    <option value="440" selected>Medium (440px)</option>
+    <option value="560">Tall (560px)</option>
+    <option value="700">Full (700px)</option>
+  </select>
+
+  <label class="ema-label">
+    <input type="checkbox" id="emaFilter" onchange="filterStocks()">
+    EMA Cross only
+  </label>
+
+  <div class="view-toggle">
+    <button class="view-btn active" id="vCard" onclick="switchView('card',this)" title="Card view"><i class="fas fa-th-large"></i></button>
+    <button class="view-btn" id="vTable" onclick="switchView('table',this)" title="Table view"><i class="fas fa-table"></i></button>
+  </div>
+
+  <button class="ctrl-btn" onclick="refreshAll()" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+
+  <span class="count-badge" id="countBadge">— stocks</span>
+</div>
+
+<!-- ── Card / Table containers ── -->
+<div id="cardArea">
+  <div class="card-grid" id="cardGrid"></div>
+</div>
+<div id="tableArea" style="display:none">
+  <div class="tbl-wrap">
+    <table class="stock-table" id="stockTable">
+      <thead>
+        <tr>
+          <th class="sortable" onclick="sortTable('stock_name')">Symbol <span id="sort-stock_name">↕</span></th>
+          <th>Setup</th>
+          <th class="sortable" onclick="sortTable('close')">Close <span id="sort-close">↕</span></th>
+          <th class="sortable" onclick="sortTable('chg_pct')">Change% <span id="sort-chg_pct">↕</span></th>
+          <th class="sortable" onclick="sortTable('volume')">Volume <span id="sort-volume">↕</span></th>
+          <th>Market Cap</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Pagination ── -->
+<div class="pg-wrap" id="pgWrap">
+  <button class="pg-btn" id="pgPrev" onclick="changePage(-1)" disabled>‹ Prev</button>
+  <div id="pgNums"></div>
+  <button class="pg-btn" id="pgNext" onclick="changePage(1)" disabled>Next ›</button>
+  <span class="pg-info" id="pgInfo"></span>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════ SCRIPTS ══════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// CONFIG — update with your EC2 IP / domain
+// ══════════════════════════════════════════════════════════════════════════════
+const API_BASE = "http://15.207.151.67:5000";   // ← your EC2 backend URL
+
+// ── EMA line colours ──
+const EMA_COLORS = { 10:"#2962ff", 20:"#ff6d00", 50:"#aa00ff", 200:"#e91e63" };
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════════
+let allStocks      = [];   // full list from /api/tradingview/stocks
+let filteredStocks = [];   // after search / filters
+let page           = 1;
+let pageSize       = 6;
+let currentView    = "card";
+let chartHeightPx  = 440;
+let chartInstances = {};   // instrument_id → LightweightCharts instance
+let tableData      = {};   // instrument_id → { close, chg_pct, volume }
+let favorites      = JSON.parse(localStorage.getItem("tv_favs") || "{}");
+let setupChoices   = null;
+let sortKey        = null;
+let sortDir        = "asc";
+
+// ══════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════════════════════
+const $  = id => document.getElementById(id);
+const fv = v  => v == null ? "—" : Number(v).toFixed(2);
+
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(API_BASE + path, {
+    headers: { "Content-Type": "application/json" }, ...opts
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function toast(msg, ok = true) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.style.background = ok ? "#2e7d32" : "#c62828";
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 3000);
+}
+
+let _debounceT = null;
+function debounce(fn, ms) {
+  return (...a) => { clearTimeout(_debounceT); _debounceT = setTimeout(() => fn(...a), ms); };
+}
+const onSearch = debounce(filterStocks, 250);
+
+// ── Theme ──────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  document.body.classList.toggle("dark-mode");
+  const dark = document.body.classList.contains("dark-mode");
+  $("themeBtn").textContent = dark ? "☀️" : "🌙";
+  localStorage.setItem("tv_dark", dark);
+  // Re-apply chart backgrounds
+  Object.values(chartInstances).forEach(({ chart }) => {
+    const bg = dark ? "#1e1e1e" : "#ffffff";
+    const tc = dark ? "#cccccc" : "#333333";
+    const gc = dark ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.04)";
+    chart.applyOptions({
+      layout: { background: { color: bg }, textColor: tc },
+      grid: { vertLines: { color: gc }, horzLines: { color: gc } }
+    });
+  });
+}
+if (localStorage.getItem("tv_dark") === "true") {
+  document.body.classList.add("dark-mode");
+  $("themeBtn").textContent = "☀️";
+}
+
+// ── API health ──────────────────────────────────────────────────────────────
+async function pingApi() {
+  try {
+    const d = await apiFetch("/api/health");
+    $("apiDot").textContent = d.success ? "🟢 Connected" : "🔴 Error";
+  } catch {
+    $("apiDot").textContent = "🔴 Offline";
+  }
+}
+pingApi();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BOOT — load stock list
+// ══════════════════════════════════════════════════════════════════════════════
+async function boot() {
+  $("cardGrid").innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-secondary)"><div class="spinner" style="margin:0 auto 12px"></div>Loading stocks…</div>`;
+
+  try {
+    const d = await apiFetch("/api/tradingview/stocks");
+    allStocks = d.stocks || [];
+
+    // Build setup filter (Choices.js multi-select)
+    const sel = $("setupFilter");
+    const setups = [...new Set(allStocks.map(s => s.setup_case).filter(Boolean))].sort();
+    setups.forEach(sc => {
+      const o = document.createElement("option");
+      o.value = sc; o.textContent = sc; sel.appendChild(o);
+    });
+
+    if (setupChoices) setupChoices.destroy();
+    setupChoices = new Choices(sel, {
+      removeItemButton: true, searchEnabled: true,
+      placeholderValue: "All setups", itemSelectText: "",
+      shouldSort: false
+    });
+    sel.addEventListener("change", filterStocks);
+
+    // Restore saved layout
+    const savedCols = localStorage.getItem("tv_cols") || "2";
+    $("layoutSel").value = savedCols;
+    setLayout(savedCols, false);
+
+    filterStocks();
+  } catch (e) {
+    $("cardGrid").innerHTML = `<div style="padding:40px;text-align:center;color:var(--error)"><i class="fas fa-exclamation-triangle"></i> Failed to load stocks — ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FILTER + RANK
+// ══════════════════════════════════════════════════════════════════════════════
+function filterStocks() {
+  const q        = ($("searchInput").value || "").toLowerCase().trim();
+  const emaOn    = $("emaFilter").checked;
+  const selSetups= setupChoices ? setupChoices.getValue(true).filter(Boolean) : [];
+
+  filteredStocks = allStocks.filter(s => {
+    const mSearch = !q ||
+      s.stock_name.toLowerCase().includes(q) ||
+      (s.setup_case || "").toLowerCase().includes(q) ||
+      String(s.instrument_id).includes(q);
+    const mSetup = !selSetups.length || selSetups.includes(s.setup_case);
+    const mEma   = !emaOn || !!(tableData[s.instrument_id]?.ema_cross);
+    return mSearch && mSetup && mEma;
+  });
+
+  page = 1;
+  $("countBadge").textContent = `${filteredStocks.length} stock${filteredStocks.length !== 1 ? "s" : ""}`;
+  render();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LAYOUT / VIEW CONTROLS
+// ══════════════════════════════════════════════════════════════════════════════
+function setLayout(cols, save = true) {
+  $("cardGrid").style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  if (save) localStorage.setItem("tv_cols", cols);
+}
+
+function setChartHeight(h) {
+  chartHeightPx = parseInt(h);
+  // Rebuild all rendered charts at new height
+  Object.entries(chartInstances).forEach(([id, inst]) => {
+    inst.chart.applyOptions({ height: chartHeightPx });
+  });
+}
+
+function switchView(v, btn) {
+  currentView = v;
+  document.querySelectorAll(".view-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  $("cardArea").style.display   = v === "card"  ? "block" : "none";
+  $("tableArea").style.display  = v === "table" ? "block" : "none";
+  page = 1;
+  render();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PAGINATION
+// ══════════════════════════════════════════════════════════════════════════════
+function changePage(dir) {
+  const max = Math.ceil(filteredStocks.length / pageSize);
+  page = Math.max(1, Math.min(max, page + dir));
+  render();
+}
+
+function renderPagination() {
+  const total = filteredStocks.length;
+  const max   = Math.ceil(total / pageSize) || 1;
+  const start = (page - 1) * pageSize + 1;
+  const end   = Math.min(page * pageSize, total);
+
+  $("pgPrev").disabled = page === 1;
+  $("pgNext").disabled = page >= max;
+  $("pgInfo").textContent = total ? `${start}–${end} of ${total}` : "0 stocks";
+
+  const nums = $("pgNums");
+  nums.innerHTML = "";
+  const from = Math.max(1, page - 2), to = Math.min(max, from + 4);
+  for (let i = from; i <= to; i++) {
+    const b = document.createElement("button");
+    b.className = "pg-btn" + (i === page ? " active" : "");
+    b.textContent = i;
+    b.onclick = (() => { const p = i; return () => { page = p; render(); }; })();
+    nums.appendChild(b);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RENDER DISPATCHER
+// ══════════════════════════════════════════════════════════════════════════════
+function render() {
+  renderPagination();
+  if (currentView === "card") renderCards();
+  else renderTable();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CARD VIEW
+// ══════════════════════════════════════════════════════════════════════════════
+function renderCards() {
+  // Destroy old chart instances on this page before re-rendering
+  const grid = $("cardGrid");
+  grid.querySelectorAll(".stock-card").forEach(c => {
+    const id = c.dataset.id;
+    if (chartInstances[id]) {
+      try { chartInstances[id].chart.remove(); } catch {}
+      delete chartInstances[id];
+    }
+  });
+  grid.innerHTML = "";
+
+  const slice = filteredStocks.slice((page - 1) * pageSize, page * pageSize);
+  if (!slice.length) {
+    grid.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-secondary);grid-column:1/-1">No stocks match your filters.</div>`;
+    return;
+  }
+  slice.forEach(s => {
+    const card = buildCard(s);
+    grid.appendChild(card);
+    loadChart(s, card);
+  });
+}
+
+function buildCard(stock) {
+  const id  = stock.instrument_id;
+  const fav = favorites[id];
+  const td  = tableData[id] || {};
+
+  const card = document.createElement("div");
+  card.className = "stock-card";
+  card.dataset.id = id;
+
+  const chgClass = (td.chg_pct || 0) >= 0 ? "chg-pos" : "chg-neg";
+  const chgStr   = td.chg_pct != null ? ((td.chg_pct >= 0 ? "▲" : "▼") + Math.abs(td.chg_pct).toFixed(2) + "%") : "";
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="stock-meta">
+        <span class="stock-name">${stock.stock_name}</span>
+        ${stock.setup_case ? `<span class="setup-badge">${stock.setup_case}</span>` : ""}
+      </div>
+      <div class="price-wrap" id="price-${id}">
+        <div class="price-ltp">${td.close ? fv(td.close) : "—"}</div>
+        <div class="price-chg ${chgClass}">${chgStr}</div>
+      </div>
+      <div class="card-actions">
+        <button class="action-btn ${fav ? "fav-on" : ""}" id="fav-${id}" title="Favourite" onclick="toggleFav(${id})">
+          <i class="${fav ? "fas" : "far"} fa-star"></i>
+        </button>
+        <button class="action-btn" title="Download PNG" onclick="downloadChart(${id})">
+          <i class="fas fa-download"></i>
+        </button>
+        <button class="action-btn" title="Expand" id="exp-${id}" onclick="expandCard(${id}, this)">
+          <i class="fas fa-expand-alt"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body-wrap">
+      <div class="ohlc-bar" id="ohlc-${id}">Hover over chart</div>
+      <div class="chart-container" id="cc-${id}" style="height:${chartHeightPx}px">
+        <div class="loading-box"><div class="spinner"></div><span>Loading…</span></div>
+      </div>
+      <div class="legend" id="leg-${id}"></div>
+    </div>`;
+  return card;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TRADINGVIEW LIGHTWEIGHT CHARTS — FULL IMPLEMENTATION
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadChart(stock, card) {
+  const id  = stock.instrument_id;
+  const cc  = $(`cc-${id}`);
+
+  try {
+    const d   = await apiFetch(`/api/tradingview/stock_data?instrument_id=${id}`);
+    const raw = d.data;
+    if (!raw || !raw.length) throw new Error("No data");
+
+    // Cache table data
+    const last   = raw[raw.length - 1];
+    const prev   = raw[raw.length - 2];
+    const chgPct = prev ? ((last.close - prev.close) / prev.close * 100) : null;
+    tableData[id] = {
+      close:    last.close,
+      chg_pct:  chgPct != null ? parseFloat(chgPct.toFixed(2)) : null,
+      volume:   last.volume,
+      ema_cross: detectEmaCross(raw)
+    };
+    updatePriceBadge(id, tableData[id]);
+
+    // ── Create chart ──────────────────────────────────────────────────────────
+    cc.innerHTML = "";
+    const dark = document.body.classList.contains("dark-mode");
+
+    const chart = LightweightCharts.createChart(cc, {
+      width:   cc.clientWidth,
+      height:  chartHeightPx,
+      layout: {
+        background:  { type: "solid", color: dark ? "#1e1e1e" : "#ffffff" },
+        textColor:   dark ? "#cccccc" : "#333333",
+        fontSize:    11,
+      },
+      grid: {
+        vertLines: { color: dark ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.04)" },
+        horzLines: { color: dark ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.04)" },
+      },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      rightPriceScale: { borderColor: dark ? "#444" : "#ddd" },
+      timeScale: {
+        borderColor:  dark ? "#444" : "#ddd",
+        timeVisible:  false,
+        rightOffset:  8,
+        barSpacing:   8,
+        minBarSpacing: 2,
+      },
+      handleScroll:  true,
+      handleScale:   true,
+    });
+
+    // ── Candlestick series ────────────────────────────────────────────────────
+    const candleSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+      upColor:          "#26a69a",
+      downColor:        "#ef5350",
+      borderUpColor:    "#26a69a",
+      borderDownColor:  "#ef5350",
+      wickUpColor:      "#26a69a",
+      wickDownColor:    "#ef5350",
+    });
+    candleSeries.setData(raw);
+
+    // ── EMA lines ─────────────────────────────────────────────────────────────
+    const emaSeries = {};
+    [10, 20, 50, 200].forEach(period => {
+      const series = chart.addSeries(LightweightCharts.LineSeries, {
+        color:       EMA_COLORS[period],
+        lineWidth:   period <= 20 ? 1.5 : 1,
+        priceLineVisible: false,
+        lastValueVisible: true,
+        crosshairMarkerVisible: false,
+      });
+      const emaData = calcEMA(raw, period);
+      series.setData(emaData);
+      emaSeries[period] = series;
+    });
+
+    // ── Volume histogram (separate scale) ─────────────────────────────────────
+    const volSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
+      color:        "#26a69a",
+      priceFormat:  { type: "volume" },
+      priceScaleId: "vol",
+      scaleMargins: { top: 0.82, bottom: 0 },
+    });
+    volSeries.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+    volSeries.setData(raw.map(b => ({
+      time:  b.time,
+      value: b.volume,
+      color: b.close >= b.open ? "rgba(38,166,154,.45)" : "rgba(239,83,80,.45)"
+    })));
+
+    // ── Volume toggle ─────────────────────────────────────────────────────────
+    let volVisible = true;
+    card.querySelector(`[title="Download PNG"]`).parentElement.querySelectorAll(".action-btn").forEach(btn => {
+      // no-op — vol toggle added via legend below
+    });
+
+    // ── Legend ────────────────────────────────────────────────────────────────
+    const legEl = $(`leg-${id}`);
+    let volToggled = false;
+    const legendItems = [
+      { label: "EMA 10", color: EMA_COLORS[10], series: emaSeries[10] },
+      { label: "EMA 20", color: EMA_COLORS[20], series: emaSeries[20] },
+      { label: "EMA 50", color: EMA_COLORS[50], series: emaSeries[50] },
+      { label: "EMA200", color: EMA_COLORS[200], series: emaSeries[200] },
+    ];
+    legendItems.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "leg-item";
+      div.style.cursor = "pointer";
+      div.title = `Toggle ${item.label}`;
+      let on = true;
+      div.innerHTML = `<div class="leg-dot" style="background:${item.color}"></div><span>${item.label}</span>`;
+      div.onclick = () => {
+        on = !on;
+        item.series.applyOptions({ visible: on });
+        div.style.opacity = on ? "1" : "0.35";
+      };
+      legEl.appendChild(div);
+    });
+
+    // Vol toggle in legend
+    const volDiv = document.createElement("div");
+    volDiv.className = "leg-item";
+    volDiv.style.cursor = "pointer";
+    volDiv.title = "Toggle volume";
+    volDiv.innerHTML = `<div class="leg-dot" style="background:rgba(120,120,120,.6)"></div><span>Volume</span>`;
+    volDiv.onclick = () => {
+      volToggled = !volToggled;
+      volSeries.applyOptions({ visible: !volToggled });
+      volDiv.style.opacity = volToggled ? "0.35" : "1";
+    };
+    legEl.appendChild(volDiv);
+
+    // ── OHLC tooltip on crosshair ──────────────────────────────────────────────
+    const ohlcEl = $(`ohlc-${id}`);
+    const volMap = {};
+    raw.forEach(b => { volMap[b.time] = b.volume; });
+
+    chart.subscribeCrosshairMove(param => {
+      if (!param || !param.time) {
+        ohlcEl.textContent = "Hover over chart";
+        return;
+      }
+      const c = param.seriesData.get(candleSeries);
+      if (!c) return;
+      const vol   = volMap[c.time] || 0;
+      const volK  = vol >= 1e6 ? (vol / 1e6).toFixed(1) + "M" : vol >= 1e3 ? (vol / 1e3).toFixed(0) + "K" : vol;
+      const chgC  = c.close >= c.open ? "#26a69a" : "#ef5350";
+      ohlcEl.innerHTML =
+        `<b style="color:${chgC}">${c.close.toFixed(2)}</b>`+
+        ` &nbsp;O:<b>${c.open.toFixed(2)}</b>`+
+        ` H:<b>${c.high.toFixed(2)}</b>`+
+        ` L:<b>${c.low.toFixed(2)}</b>`+
+        ` V:<b>${volK}</b>`;
+    });
+
+    // ── Fit + auto-resize ─────────────────────────────────────────────────────
+    chart.timeScale().fitContent();
+
+    new ResizeObserver(entries => {
+      const e = entries[0];
+      if (e) chart.applyOptions({ width: e.contentRect.width });
+    }).observe(cc);
+
+    // ── Store instance ─────────────────────────────────────────────────────────
+    chartInstances[id] = { chart, candleSeries, emaSeries, volSeries, raw };
+
+  } catch (e) {
+    cc.innerHTML = `<div class="error-box"><i class="fas fa-exclamation-triangle"></i> ${e.message || "Failed to load"}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EMA CALCULATION
+// ══════════════════════════════════════════════════════════════════════════════
+function calcEMA(data, period) {
+  if (!data.length) return [];
+  const k = 2 / (period + 1);
+  return data.map((b, i) => ({
+    time:  b.time,
+    value: i === 0 ? b.close : b.close * k + (data[i - 1]._ema?.[period] || b.close) * (1 - k)
+  })).map((e, i) => {
+    // Two-pass for accuracy
+    data[i]._ema = data[i]._ema || {};
+    data[i]._ema[period] = e.value;
+    return e;
+  });
+}
+
+function detectEmaCross(data) {
+  if (!data || data.length < 3) return false;
+  const e10  = calcEMA(data, 10);
+  const e20  = calcEMA(data, 20);
+  const e50  = calcEMA(data, 50);
+  const i    = data.length - 1;
+  const lat  = data[i];
+  const uptrend  = e20[i].value > e50[i].value;
+  const lowBuf   = lat.low  > lat.open * 0.96;
+  const highVol  = lat.volume > 70000;
+  const touchEma =
+    (lat.low <= e10[i].value && lat.close >= e10[i].value * 0.995) ||
+    (lat.low <= e20[i].value && lat.close >= e20[i].value * 0.995);
+  return uptrend && lowBuf && highVol && touchEma;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRICE BADGE UPDATE
+// ══════════════════════════════════════════════════════════════════════════════
+function updatePriceBadge(id, td) {
+  const el = $(`price-${id}`);
+  if (!el) return;
+  const chgClass = (td.chg_pct || 0) >= 0 ? "chg-pos" : "chg-neg";
+  const chgStr   = td.chg_pct != null
+    ? ((td.chg_pct >= 0 ? "▲" : "▼") + Math.abs(td.chg_pct).toFixed(2) + "%")
+    : "";
+  el.innerHTML = `
+    <div class="price-ltp">${fv(td.close)}</div>
+    <div class="price-chg ${chgClass}">${chgStr}</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CARD ACTIONS
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleFav(id) {
+  favorites[id] = !favorites[id];
+  localStorage.setItem("tv_favs", JSON.stringify(favorites));
+  const btn = $(`fav-${id}`);
+  if (!btn) return;
+  btn.classList.toggle("fav-on", favorites[id]);
+  btn.querySelector("i").className = favorites[id] ? "fas fa-star" : "far fa-star";
+}
+
+let expandedId = null;
+function expandCard(id, btn) {
+  const card  = btn.closest(".stock-card");
+  const isExp = card.classList.contains("expanded");
+
+  if (isExp) {
+    card.classList.remove("expanded");
+    btn.innerHTML = `<i class="fas fa-expand-alt"></i>`;
+    expandedId = null;
+  } else {
+    if (expandedId) {
+      const prev = document.querySelector(`.stock-card.expanded`);
+      if (prev) {
+        prev.classList.remove("expanded");
+        const prevBtn = $(`exp-${expandedId}`);
+        if (prevBtn) prevBtn.innerHTML = `<i class="fas fa-expand-alt"></i>`;
+      }
+    }
+    card.classList.add("expanded");
+    btn.innerHTML = `<i class="fas fa-compress-alt"></i>`;
+    expandedId = id;
+  }
+
+  // Resize chart after layout change
+  setTimeout(() => {
+    const inst = chartInstances[id];
+    if (inst) {
+      const cc = $(`cc-${id}`);
+      const h  = isExp ? chartHeightPx : (window.innerHeight - 130);
+      cc.style.height = h + "px";
+      inst.chart.applyOptions({ width: cc.clientWidth, height: h });
+      inst.chart.timeScale().fitContent();
+    }
+  }, 50);
+}
+
+async function downloadChart(id) {
+  const inst = chartInstances[id];
+  if (!inst) { toast("Chart not ready", false); return; }
+  try {
+    const img = await inst.chart.takeScreenshot();
+    const a = document.createElement("a");
+    a.href = img.toDataURL("image/png");
+    a.download = `chart_${id}.png`;
+    a.click();
+    toast("Chart downloaded ✓");
+  } catch { toast("Download failed", false); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TABLE VIEW
+// ══════════════════════════════════════════════════════════════════════════════
+function renderTable() {
+  let stocks = [...filteredStocks].slice((page - 1) * pageSize, page * pageSize);
+
+  if (sortKey) {
+    stocks.sort((a, b) => {
+      const va = tableData[a.instrument_id]?.[sortKey] ?? a[sortKey] ?? 0;
+      const vb = tableData[b.instrument_id]?.[sortKey] ?? b[sortKey] ?? 0;
+      return sortDir === "asc" ? va - vb : vb - va;
+    });
+  }
+
+  const tb = $("tableBody");
+  tb.innerHTML = "";
+
+  if (!stocks.length) {
+    tb.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-secondary)">No stocks found</td></tr>`;
+    return;
+  }
+
+  // Load table data for each stock if not cached
+  stocks.forEach(s => {
+    const id = s.instrument_id;
+    const td_ = tableData[id] || {};
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><b>${s.stock_name}</b></td>
+      <td>${s.setup_case ? `<span class="tbl-setup">${s.setup_case}</span>` : "—"}</td>
+      <td class="tbl-close-${id}">${td_.close != null ? fv(td_.close) : "—"}</td>
+      <td class="tbl-chg-${id}" style="color:${(td_.chg_pct || 0) >= 0 ? "var(--success)" : "var(--error)"}">
+        ${td_.chg_pct != null ? ((td_.chg_pct >= 0 ? "▲" : "▼") + Math.abs(td_.chg_pct).toFixed(2) + "%") : "—"}
+      </td>
+      <td class="tbl-vol-${id}">${td_.volume != null ? Number(td_.volume).toLocaleString() : "—"}</td>
+      <td>${s.market_cap ? Number(s.market_cap / 1e7).toFixed(0) + " Cr" : "—"}</td>`;
+    tb.appendChild(row);
+
+    // Fetch data if not cached
+    if (!tableData[id]) {
+      apiFetch(`/api/tradingview/stock_data?instrument_id=${id}`)
+        .then(d => {
+          const raw = d.data || [];
+          if (!raw.length) return;
+          const last = raw[raw.length - 1], prev = raw[raw.length - 2];
+          const chg  = prev ? ((last.close - prev.close) / prev.close * 100) : null;
+          tableData[id] = {
+            close: last.close,
+            chg_pct: chg != null ? parseFloat(chg.toFixed(2)) : null,
+            volume: last.volume,
+            ema_cross: detectEmaCross(raw)
+          };
+          const closeEl = document.querySelector(`.tbl-close-${id}`);
+          const chgEl   = document.querySelector(`.tbl-chg-${id}`);
+          const volEl   = document.querySelector(`.tbl-vol-${id}`);
+          if (closeEl) closeEl.textContent = fv(last.close);
+          if (chgEl)   {
+            const c = tableData[id].chg_pct;
+            chgEl.textContent = c != null ? ((c >= 0 ? "▲" : "▼") + Math.abs(c).toFixed(2) + "%") : "—";
+            chgEl.style.color = (c || 0) >= 0 ? "var(--success)" : "var(--error)";
+          }
+          if (volEl)   volEl.textContent = Number(last.volume).toLocaleString();
+        })
+        .catch(() => {});
+    }
+  });
+}
+
+function sortTable(key) {
+  if (sortKey === key) sortDir = sortDir === "asc" ? "desc" : "asc";
+  else { sortKey = key; sortDir = "asc"; }
+  // Reset all headers
+  ["stock_name", "close", "chg_pct", "volume"].forEach(k => {
+    const el = $(`sort-${k}`);
+    if (el) el.textContent = k === sortKey ? (sortDir === "asc" ? "▲" : "▼") : "↕";
+  });
+  renderTable();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REFRESH
+// ══════════════════════════════════════════════════════════════════════════════
+async function refreshAll() {
+  const btn = $("refreshBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-sync-alt fa-spin"></i> Refreshing…`;
+  try {
+    await apiFetch("/api/tradingview/refresh");
+    tableData = {};  // clear cache so charts reload fresh data
+    // Destroy all chart instances
+    Object.values(chartInstances).forEach(inst => { try { inst.chart.remove(); } catch {} });
+    chartInstances = {};
+    toast("Data refreshed ✓");
+    render();
+  } catch (e) {
+    toast("Refresh failed: " + e.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-sync-alt"></i> Refresh`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════════════════════════════
+boot();
+</script>
+</body>
+</html>
