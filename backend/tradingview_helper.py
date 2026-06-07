@@ -261,6 +261,7 @@ def get_stock_list():
         return []
 
     df = df_map.copy()
+    df.columns = df.columns.str.strip()
 
     # -------------------------------
     # STEP 1: Cleanup
