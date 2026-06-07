@@ -265,14 +265,14 @@ def get_stock_list():
 
         ema_cross = False
         if df is not None and len(df) > 60:
-            ema_cross = compute_ema_cross(df.tail(120))
+            ema_cross = bool(compute_ema_cross(df.tail(120)))
 
         stocks.append({
             "stock_name": str(row["Stock Name"]),
-            "instrument_id": instrument_id,
+            "instrument_id": int(instrument_id),
             "market_cap": float(row["Market Cap"]) if pd.notna(row["Market Cap"]) else 0.0,
             "setup_case": str(row["Setup_Case"]) if pd.notna(row["Setup_Case"]) else "Unknown",
-            "ema_cross": ema_cross   # ⭐ MAIN FIX
+            "ema_cross": bool(ema_cross)
         })
 
     return stocks
@@ -451,8 +451,9 @@ def compute_ema_cross(df):
     cond_price_cross = cross_ema10 or cross_ema20
     cond_alignment = latest["ema10"] > latest["ema20"] > latest["ema50"]
     cond_volume = latest["volume"] > 70000
+    result = cond_price_cross and cond_alignment and cond_volume
 
-    return cond_price_cross and cond_alignment and cond_volume
+    return bool(result)
 
 # Initialize on import
 logger.info("TradingView helper initialized")
