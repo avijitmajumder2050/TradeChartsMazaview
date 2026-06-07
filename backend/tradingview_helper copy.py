@@ -10,7 +10,6 @@ import json  # <-- add this
 from io import StringIO
 import tempfile
 from botocore.exceptions import ClientError, NoCredentialsError
-from ta.trend import EMAIndicator
 
 
 
@@ -257,25 +256,18 @@ def fetch_all_live_data_bulk():
 def get_stock_list():
     df_map = get_df_map()
     stocks = []
-
     for _, row in df_map.iterrows():
-        instrument_id = int(row["Instrument ID"])
-
-        df = load_csv_from_s3(instrument_id)
-
-        ema_cross = False
-        if df is not None and len(df) > 60:
-            ema_cross = compute_ema_cross(df.tail(120))
-
-        stocks.append({
-            "stock_name": str(row["Stock Name"]),
-            "instrument_id": instrument_id,
-            "market_cap": float(row["Market Cap"]) if pd.notna(row["Market Cap"]) else 0.0,
-            "setup_case": str(row["Setup_Case"]) if pd.notna(row["Setup_Case"]) else "Unknown",
-            "ema_cross": ema_cross   # ⭐ MAIN FIX
-        })
-
+        try:
+            stocks.append({
+                "stock_name": str(row["Stock Name"]),
+                "instrument_id": int(row["Instrument ID"]),
+                "market_cap": float(row["Market Cap"]) if pd.notna(row["Market Cap"]) else 0.0,
+                "setup_case": str(row["Setup_Case"]) if pd.notna(row["Setup_Case"]) else "Unknown"
+            })
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Skipping invalid row in mapping: {e}")
     return stocks
+
 def load_csv_from_s3(instrument_id):
     """Load CSV from S3 with fallback to backup directory"""
     if not s3_client:
@@ -429,30 +421,7 @@ def get_ec2_public_ip(tag_name="FlaskTradingApp", region_name="ap-south-1"):
         logger.error(f"❌ Error fetching EC2 public IP: {e}")
         return None
 
-from ta.trend import EMAIndicator
 
-def compute_ema_cross(df):
-    if df is None or len(df) < 60:
-        return False
-
-    df = df.copy()
-    df.columns = [c.lower() for c in df.columns]
-
-    df["ema10"] = EMAIndicator(df["close"], 10).ema_indicator()
-    df["ema20"] = EMAIndicator(df["close"], 20).ema_indicator()
-    df["ema50"] = EMAIndicator(df["close"], 50).ema_indicator()
-
-    latest = df.iloc[-1]
-    prev = df.iloc[-2]
-
-    cross_ema10 = prev["close"] <= prev["ema10"] and latest["close"] > latest["ema10"]
-    cross_ema20 = prev["close"] <= prev["ema20"] and latest["close"] > latest["ema20"]
-
-    cond_price_cross = cross_ema10 or cross_ema20
-    cond_alignment = latest["ema10"] > latest["ema20"] > latest["ema50"]
-    cond_volume = latest["volume"] > 70000
-
-    return cond_price_cross and cond_alignment and cond_volume
 
 # Initialize on import
 logger.info("TradingView helper initialized")
