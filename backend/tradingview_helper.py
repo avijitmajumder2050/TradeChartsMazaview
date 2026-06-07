@@ -263,26 +263,20 @@ def get_stock_list():
     df = df_map.copy()
 
     # -------------------------------
-    # STEP 1: Basic cleanup
+    # STEP 1: Cleanup
     # -------------------------------
     df = df.dropna(subset=["Stock Name", "Instrument ID"])
 
     # -------------------------------
-    # STEP 2: Rank-based RS score
-    # (Market cap proxy OR you can replace later with returns)
+    # STEP 2: Use RS Rating directly from CSV
     # -------------------------------
-    df["Market Cap"] = pd.to_numeric(df["Market Cap"], errors="coerce").fillna(0)
+    df["rs_rating"] = pd.to_numeric(df["RS Rating"], errors="coerce").fillna(0)
 
-    # Rank: highest market cap = strongest
-    df["rank"] = df["Market Cap"].rank(method="dense", ascending=True)
-
-    max_rank = df["rank"].max()
-
-    # Convert rank → RS score (100 = best, 0 = worst)
-    df["rs_rating"] = 100 - ((df["rank"] - 1) / (max_rank - 1) * 100 if max_rank > 1 else 0)
+    # optional safety clamp (0–100)
+    df["rs_rating"] = df["rs_rating"].clip(0, 100)
 
     # -------------------------------
-    # STEP 3: Sort (RS 100 → 0)
+    # STEP 3: Sort by RS (100 → 0)
     # -------------------------------
     df = df.sort_values(by="rs_rating", ascending=False)
 
@@ -292,10 +286,10 @@ def get_stock_list():
             stocks.append({
                 "stock_name": str(row["Stock Name"]),
                 "instrument_id": int(row["Instrument ID"]),
-                "market_cap": float(row["Market Cap"]) if pd.notna(row["Market Cap"]) else 0.0,
-                "setup_case": str(row["Setup_Case"]) if pd.notna(row["Setup_Case"]) else "Unknown",
+                "market_cap": float(row["Market Cap"]) if "Market Cap" in row and pd.notna(row["Market Cap"]) else 0.0,
+                "setup_case": str(row.get("Setup_Case", "Unknown")),
 
-                # ⭐ NEW FIELD
+                # ⭐ direct from CSV
                 "rs_rating": round(float(row["rs_rating"]), 2)
             })
         except Exception as e:
