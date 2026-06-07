@@ -281,7 +281,7 @@ def get_ema_cache():
         try:
             instrument_id = int(row["Instrument ID"])
             stock_name = str(row["Stock Name"])   # ✅ ADD THIS
-            df = load_csv_from_s3(instrument_id)
+            df = load_stock_data(instrument_id)
             
 
             if df is None or len(df) < 60:
