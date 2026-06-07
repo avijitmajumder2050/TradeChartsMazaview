@@ -256,51 +256,17 @@ def fetch_all_live_data_bulk():
 
 def get_stock_list():
     df_map = get_df_map()
-
-    if df_map.empty:
-        return []
-
-    df = df_map.copy()
-
-    # -------------------------------
-    # STEP 1: Basic cleanup
-    # -------------------------------
-    df = df.dropna(subset=["Stock Name", "Instrument ID"])
-
-    # -------------------------------
-    # STEP 2: Rank-based RS score
-    # (Market cap proxy OR you can replace later with returns)
-    # -------------------------------
-    df["Market Cap"] = pd.to_numeric(df["Market Cap"], errors="coerce").fillna(0)
-
-    # Rank: highest market cap = strongest
-    df["rank"] = df["Market Cap"].rank(method="dense", ascending=True)
-
-    max_rank = df["rank"].max()
-
-    # Convert rank → RS score (100 = best, 0 = worst)
-    df["rs_rating"] = 100 - ((df["rank"] - 1) / (max_rank - 1) * 100 if max_rank > 1 else 0)
-
-    # -------------------------------
-    # STEP 3: Sort (RS 100 → 0)
-    # -------------------------------
-    df = df.sort_values(by="rs_rating", ascending=False)
-
     stocks = []
-    for _, row in df.iterrows():
+    for _, row in df_map.iterrows():
         try:
             stocks.append({
                 "stock_name": str(row["Stock Name"]),
                 "instrument_id": int(row["Instrument ID"]),
                 "market_cap": float(row["Market Cap"]) if pd.notna(row["Market Cap"]) else 0.0,
-                "setup_case": str(row["Setup_Case"]) if pd.notna(row["Setup_Case"]) else "Unknown",
-
-                # ⭐ NEW FIELD
-                "rs_rating": round(float(row["rs_rating"]), 2)
+                "setup_case": str(row["Setup_Case"]) if pd.notna(row["Setup_Case"]) else "Unknown"
             })
-        except Exception as e:
-            logger.warning(f"Skipping row: {e}")
-
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Skipping invalid row in mapping: {e}")
     return stocks
 
 def get_ema_cache():
