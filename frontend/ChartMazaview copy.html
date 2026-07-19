@@ -491,16 +491,7 @@ function buildCard(stock) {
     <div class="card-header">
       <div class="stock-meta">
         <span class="stock-name">${stock.stock_name}</span>
-       ${stock.setup_case ? `
-  <span class="setup-badge">
-    ${stock.setup_case} |
-    <span style="color:#c62828; font-weight:700;">
-      RS ${stock.rs_rating}
-    </span>
-    | MC ${fv(stock.market_cap)}
-  </span>
-` : ""}
-      </div>
+        ${stock.setup_case ? `<span class="setup-badge">${stock.setup_case}</span>` : ""}
       </div>
       <div class="price-wrap" id="price-${id}">
         <div class="price-ltp">${td.close ? fv(td.close) : "—"}</div>

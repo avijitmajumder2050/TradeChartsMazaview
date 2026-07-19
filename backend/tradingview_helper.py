@@ -11,6 +11,7 @@ from io import StringIO
 import tempfile
 from botocore.exceptions import ClientError, NoCredentialsError
 from ta.trend import EMAIndicator
+from aws_s3 import S3_BUCKET as ACTIVE_S3_BUCKET
 
 
 
@@ -46,7 +47,7 @@ logger.info(f"🔑 DHAN_CLIENT_ID: {DHAN_CLIENT_ID}, DHAN_ACCESS_TOKEN: {'*'*8 i
 
 # S3 Configuration - CORRECTED BUCKET NAME
 #S3_BUCKET = os.getenv("S3_BUCKET", "mytradeapp-csv-bucket")  # Changed to your actual bucket name
-S3_BUCKET = "dhan-trading-data"  # Hard-coded or configured via IAM role only
+S3_BUCKET = ACTIVE_S3_BUCKET # Hard-coded or configured via IAM role only
 S3_MAPPING_KEY = "uploads/mapping.csv"
 S3_EOD_DIR = "eod_data"
 S3_DROP_DIR = "stock_dump_eod"
