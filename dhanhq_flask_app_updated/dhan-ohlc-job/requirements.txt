@@ -1,0 +1,4 @@
+boto3
+pandas
+pytz
+dhanhq==2.1.0
