@@ -1,0 +1,67 @@
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-header-left">
+      <a class="brand" href="{{ url_for('home') }}">
+        <span class="brand-mark">
+          <svg width="18" height="18" viewBox="0 0 30 30" fill="none">
+            <path d="M7 20L12.5 12.5L16.5 17L23 8" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 8H23V13" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        Quantile
+      </a>
+      <nav class="site-nav">
+        <a href="{{ url_for('home') }}" class="site-nav-link{{ ' active' if active_page == 'home' else '' }}">Home</a>
+        <a href="{{ url_for('news') }}" class="site-nav-link{{ ' active' if active_page == 'news' else '' }}">News</a>
+        <a href="{{ url_for('capabilities') }}" class="site-nav-link{{ ' active' if active_page == 'capabilities' else '' }}">Capabilities</a>
+        <div class="site-nav-dropdown" id="marketsDropdown">
+          <button type="button" class="site-nav-link site-nav-dropdown-trigger{{ ' active' if active_page in ('markets', 'ipohub', 'research', 'scanner', 'chart') else '' }}" aria-haspopup="true" aria-expanded="false">
+            Markets
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 4L5.5 7L8.5 4"/></svg>
+          </button>
+          <div class="site-nav-dropdown-menu">
+            <div class="site-nav-dropdown-menu-inner">
+              <a href="{{ url_for('ipo_hub') }}">IPO Hub</a>
+              <a href="{{ url_for('research') }}">Stock Research</a>
+              <a href="{{ url_for('scanner_page') }}">Scanner</a>
+              <a href="{{ url_for('chart_page') }}">Chart</a>
+            </div>
+          </div>
+        </div>
+        <a href="{{ url_for('education') }}" class="site-nav-link{{ ' active' if active_page == 'education' else '' }}">Education</a>
+        <a href="{{ url_for('pricing') }}" class="site-nav-link{{ ' active' if active_page == 'pricing' else '' }}">Pricing</a>
+      </nav>
+    </div>
+    <div class="site-header-right">
+      <a href="{{ url_for('login') }}" class="site-login-link">Log in</a>
+      <a href="{{ url_for('login') }}" class="site-cta-btn">Get Started Free</a>
+    </div>
+  </div>
+</header>
+
+<script>
+(function () {
+  var dropdown = document.getElementById('marketsDropdown');
+  if (!dropdown) return;
+  var trigger = dropdown.querySelector('.site-nav-dropdown-trigger');
+
+  function closeDropdown() {
+    dropdown.classList.remove('open');
+    trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  trigger.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var isOpen = dropdown.classList.toggle('open');
+    trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!dropdown.contains(e.target)) closeDropdown();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeDropdown();
+  });
+})();
+</script>

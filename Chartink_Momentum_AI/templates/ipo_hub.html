@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% set active_page = "ipohub" %}
+{% block title %}IPO Hub{% endblock %}
+{% block head_extra %}
+<style>
+  table { border-collapse: collapse; width: 100%; }
+  th { text-align: left; font-size: 12px; font-weight: 600; color: #8A90A0; text-transform: uppercase; letter-spacing: 0.04em; padding: 0 16px 12px; }
+  td { padding: 16px; font-size: 14px; border-top: 1px solid #F0F1F4; }
+</style>
+{% endblock %}
+{% block content %}
+
+<div style="width: 100%; padding: 48px 48px 0;">
+  <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <span style="color: #4640DE; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;">IPO Hub</span>
+      <h1 style="font-size: 32px; font-weight: 800; margin-top: 8px;">Upcoming &amp; ongoing IPOs</h1>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <div style="border: 1.5px solid #D8DAE3; border-radius: 10px; padding: 10px 16px; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#5B6270" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/></svg>
+        Search IPOs
+      </div>
+      <div style="background: #EEEDFD; color: #4640DE; border-radius: 10px; padding: 10px 16px; font-size: 13.5px; font-weight: 700;">GMP Alerts</div>
+    </div>
+  </div>
+
+  {% set ongoing = ipos|selectattr('tag', 'in', ['Open', 'Closing today'])|list %}
+  {% set upcoming = ipos|selectattr('tag', 'equalto', 'Upcoming')|list %}
+  {% set recentlyListed = ipos|selectattr('tag', 'equalto', 'Closed')|list %}
+  {% if not unavailable %}
+  <div id="ipoTabs" style="max-width: 1200px; margin: 28px auto 0; display: flex; gap: 8px;">
+    <button type="button" class="pill-tab active" data-target="ipoGroup-ongoing">Ongoing ({{ ongoing|length }})</button>
+    <button type="button" class="pill-tab" data-target="ipoGroup-upcoming">Upcoming ({{ upcoming|length }})</button>
+    <button type="button" class="pill-tab" data-target="ipoGroup-recent">Recently Listed ({{ recentlyListed|length }})</button>
+  </div>
+  {% endif %}
+</div>
+
+{% if unavailable %}
+<div style="width: 100%; padding: 64px 48px;">
+  <div style="max-width: 640px; margin: 0 auto; text-align: center; background: #FFFFFF; border: 1px solid #E3E6EC; border-radius: 18px; padding: 48px 36px;">
+    <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 8px;">Live IPO data temporarily unavailable</h2>
+    <p style="font-size: 14px; color: #5B6270; line-height: 1.6; margin: 0;">We couldn't reach the IPO/GMP data source just now. Please try again shortly.</p>
+  </div>
+</div>
+{% else %}
+<div style="width: 100%; padding: 24px 48px 0;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    {% for group_id, group_ipos in [('ipoGroup-ongoing', ongoing), ('ipoGroup-upcoming', upcoming), ('ipoGroup-recent', recentlyListed)] %}
+    <div id="{{ group_id }}" class="ipo-tab-group" {% if not loop.first %}hidden{% endif %}>
+      {% for ipo in group_ipos %}
+      <div style="background: #FFFFFF; border: 1px solid #E3E6EC; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: {{ ipo.logoBg }}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 13px;">{{ ipo.initials }}</div>
+            <div>
+              <span style="font-size: 15px; font-weight: 700; display: block;">{{ ipo.name }}</span>
+              <span style="font-size: 12px; color: #8A90A0;">{{ ipo.segment }}</span>
+            </div>
+          </div>
+          <span style="background: {{ ipo.tagBg }}; color: {{ ipo.tagColor }}; font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 100px;">{{ ipo.tag }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <div><span style="font-size: 11.5px; color: #8A90A0; display: block;">Price band</span><span class="num" style="font-size: 14px; font-weight: 600;">{{ ipo.priceBand }}</span></div>
+          <div><span style="font-size: 11.5px; color: #8A90A0; display: block;">Lot size</span><span class="num" style="font-size: 14px; font-weight: 600;">{{ ipo.lot }}</span></div>
+          <div><span style="font-size: 11.5px; color: #8A90A0; display: block;">GMP</span><span class="num" style="font-size: 14px; font-weight: 700; color: #17A673;">{{ ipo.gmp }}</span></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: #5B6270; margin-bottom: 6px;"><span>Subscribed</span><span style="font-weight: 600;">{{ ipo.subLabel }}</span></div>
+          <div style="width: 100%; height: 6px; background: #F0F1F4; border-radius: 100px;">
+            <div style="width: {{ ipo.subPct }}; height: 6px; background: #4640DE; border-radius: 100px;"></div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 4px; border-top: 1px solid #F0F1F4;">
+          <span style="font-size: 12px; color: #8A90A0;">Closes {{ ipo.closes }}</span>
+          <span style="font-size: 13px; font-weight: 700; color: #4640DE;">Details →</span>
+        </div>
+      </div>
+      {% else %}
+      <p style="grid-column: 1 / -1; color: #8A90A0; font-size: 14px; padding: 24px 0;">No IPOs in this category right now.</p>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div style="height: 88px;"></div>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('#ipoTabs .pill-tab');
+  var groups = document.querySelectorAll('.ipo-tab-group');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      groups.forEach(function (g) { g.hidden = (g.id !== tab.dataset.target); });
+    });
+  });
+})();
+</script>
+
+{% endblock %}

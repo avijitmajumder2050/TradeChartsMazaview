@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% set active_page = "subscriber_dashboard" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<!-- APP TOP BAR -->
+<div style="width: 100%; background: #FFFFFF; border-bottom: 1px solid #E3E6EC; padding: 0 40px; height: 72px; display: flex; align-items: center; justify-content: space-between;">
+  <div style="display: flex; align-items: center; gap: 40px;">
+    <div style="display: flex; align-items: center; gap: 9px;">
+      <svg width="26" height="26" viewBox="0 0 30 30" fill="none"><rect width="30" height="30" rx="8" fill="#4640DE"/><path d="M7 20L12.5 12.5L16.5 17L23 8" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 8H23V13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 18px;">Quantile</span>
+    </div>
+    <div style="display: flex; gap: 26px;">
+      <a href="{{ url_for('subscriber_dashboard') }}" style="font-size: 14px; font-weight: 700; color: #4640DE; border-bottom: 2px solid #4640DE; padding-bottom: 24px; margin-bottom: -25px;">Dashboard</a>
+      <a href="{{ url_for('research') }}" style="font-size: 14px; font-weight: 500; color: #5B6270;">Research</a>
+      <a href="{{ url_for('scanner_page') }}" style="font-size: 14px; font-weight: 500; color: #5B6270;">Scanner</a>
+      <a href="{{ url_for('chart_page') }}" style="font-size: 14px; font-weight: 500; color: #5B6270;">Chart</a>
+      <a href="{{ url_for('ipo_hub') }}" style="font-size: 14px; font-weight: 500; color: #5B6270;">IPO Hub</a>
+      <a href="{{ url_for('education') }}" style="font-size: 14px; font-weight: 500; color: #5B6270;">Education</a>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 18px;">
+    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#5B6270" stroke-width="1.6"><path d="M4 8a5.5 5.5 0 0 1 11 0c0 3 1 4 1.5 5H2.5C3 12 4 11 4 8z"/><path d="M7.5 15.5a2 2 0 0 0 4 0"/></svg>
+    <div style="width: 34px; height: 34px; border-radius: 50%; background: #4640DE; color: white; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center;">RD</div>
+  </div>
+</div>
+
+<div style="width: 100%; padding: 36px 40px 80px;">
+  <div style="max-width: 1280px; margin: 0 auto;">
+
+    <!-- WELCOME HEADER -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 26px;">
+      <div>
+        <h1 style="font-size: 26px; font-weight: 800;">Welcome back, Rohan</h1>
+        <p style="font-size: 14px; color: #5B6270; margin-top: 4px;">Saturday, 22 Aug 2026 &middot; Markets close in 1h 42m</p>
+      </div>
+      <div style="display: flex; gap: 20px;">
+        <div style="text-align: right;"><span style="font-size: 11.5px; color: #8A90A0; display: block;">Portfolio value</span><span class="num" style="font-size: 17px; font-weight: 700;">₹8,42,650</span></div>
+        <div style="text-align: right;"><span style="font-size: 11.5px; color: #8A90A0; display: block;">Today's P&amp;L</span><span class="num" style="font-size: 17px; font-weight: 700; color: #17A673;">+₹6,240</span></div>
+      </div>
+    </div>
+
+    <!-- QUICK NAV -->
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 14px; margin-bottom: 24px;">
+      {% for q in quickNav %}
+      <a href="{{ url_for(quick_nav_endpoints[q.label]) }}" style="background: #FFFFFF; border: 1px solid #E3E6EC; border-radius: 14px; padding: 16px; display: flex; align-items: center; gap: 12px;">
+        <div style="width: 36px; height: 36px; border-radius: 10px; background: {{ q.bg }}; display: flex; align-items: center; justify-content: center; color: {{ q.color }}; flex-shrink: 0;">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 13L7 8L10.5 11L15 5"/></svg>
+        </div>
+        <span style="font-size: 13.5px; font-weight: 700; color: #14171F;">{{ q.label }}</span>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div style="display: flex; gap: 20px; align-items: flex-start;">
+      <!-- LEFT: PORTFOLIO/WATCHLIST -->
+      <div style="flex: 1.6; display: flex; flex-direction: column; gap: 20px;">
+        <div style="background: #FFFFFF; border: 1px solid #E3E6EC; border-radius: 16px; padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <span style="font-size: 15px; font-weight: 700;">Portfolio &amp; watchlist</span>
+            <a href="#" style="font-size: 12.5px; font-weight: 700; color: #4640DE;">Manage →</a>
+          </div>
+          {% for h in holdings %}
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid #F0F1F4;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 34px; height: 34px; border-radius: 9px; background: {{ h.logoBg }}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 11px;">{{ h.initials }}</div>
+              <div>
+                <span style="font-size: 13.5px; font-weight: 700; display: block;">{{ h.symbol }}</span>
+                <span style="font-size: 11.5px; color: #8A90A0;">{{ h.qty }} shares</span>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span class="num" style="font-size: 13.5px; font-weight: 600; display: block;">₹{{ h.value }}</span>
+              <span class="num" style="font-size: 12px; font-weight: 600; color: {{ h.changeColor }};">{{ h.change }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #E3E6EC; border-radius: 16px; padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <span style="font-size: 15px; font-weight: 700;">Saved scanner results — "RSI Breakout"</span>
+            <a href="{{ url_for('scanner_page') }}" style="font-size: 12.5px; font-weight: 700; color: #4640DE;">Open scanner →</a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px;">
+            {% for s in scanResults %}
+            <div style="border: 1px solid #F0F1F4; border-radius: 12px; padding: 14px;">
+              <span style="font-size: 13px; font-weight: 700; display: block;">{{ s.symbol }}</span>
+              <span class="num" style="font-size: 12.5px; color: #5B6270;">RSI {{ s.rsi }}</span>
+              <span class="num" style="font-size: 12.5px; font-weight: 600; color: #17A673; display: block; margin-top: 4px;">{{ s.change }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: SUBSCRIPTION + COURSES -->
+      <div style="width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px;">
+        <div style="background: #14171F; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 700; color: #F2A93B; letter-spacing: 0.04em; text-transform: uppercase;">Your plan</span>
+            <span style="font-size: 11px; font-weight: 700; color: #4ADE9C; background: rgba(74,222,156,0.12); padding: 3px 8px; border-radius: 100px;">Active</span>
+          </div>
+          <span style="font-size: 21px; font-weight: 800; color: white;">Quantile Pro</span>
+          <p style="font-size: 12.5px; color: #9297A8; margin: 0;">Renews 21 Sep 2026 &middot; ₹499/month</p>
+          <div style="height: 1px; background: #2A2E3A; margin: 6px 0;"></div>
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px;"><span style="color: #9297A8;">Scanner runs used</span><span style="color: white; font-weight: 600;">142 / Unlimited</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px;"><span style="color: #9297A8;">Watchlist stocks</span><span style="color: white; font-weight: 600;">18 / Unlimited</span></div>
+          <a href="{{ url_for('pricing') }}" style="background: rgba(255,255,255,0.08); color: white; text-align: center; font-size: 13px; font-weight: 700; padding: 10px 0; border-radius: 9px; margin-top: 6px;">Manage subscription</a>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #E3E6EC; border-radius: 16px; padding: 22px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <span style="font-size: 14px; font-weight: 700;">Continue learning</span>
+            <a href="{{ url_for('education') }}" style="font-size: 12px; font-weight: 700; color: #4640DE;">All courses →</a>
+          </div>
+          {% for c in courses %}
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #F0F1F4;">
+            <div style="width: 40px; height: 40px; border-radius: 9px; background: {{ c.bg }}; flex-shrink: 0;"></div>
+            <div style="flex: 1;">
+              <span style="font-size: 13px; font-weight: 700; display: block;">{{ c.title }}</span>
+              <div style="width: 100%; height: 4px; background: #F0F1F4; border-radius: 100px; margin-top: 6px;"><div style="width: {{ c.progress }}; height: 4px; background: #4640DE; border-radius: 100px;"></div></div>
+            </div>
+            <span style="font-size: 11.5px; color: #8A90A0;">{{ c.progress }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
