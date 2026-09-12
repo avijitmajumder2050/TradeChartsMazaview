@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  api:
+    build: ../backend
+    ports:
+      - "5000:5000"
+    environment:
+      - AWS_DEFAULT_REGION=ap-south-1
+    restart: unless-stopped
